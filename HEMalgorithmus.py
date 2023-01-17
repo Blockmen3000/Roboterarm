@@ -1,21 +1,23 @@
-import cv2
 import turtle
 
+import cv2
+
+
 class EigenerAlgorithmus:
-    def __init__(self, img = "", strichlänge=30, wert=80, lückentoleranz = 2):
+    def __init__(self, img = "", strichlänge=30, wert=80, lückentoleranz = 2,resize=False):
         self.imgpath = img
         self.wert = wert
         self.min_strichlänge = strichlänge
         self.lückentoleranz = lückentoleranz
-    
+        self.resize = resize
     
     def erkennen(self):
         self.img = cv2.imread(self.imgpath)
         if format(self.img) == "None":
-            print("Error")
-            return False
+            raise TypeError("Nicht lesbare Datei")
         faktor = 720 / self.img.shape[1]
-        self.img = cv2.resize(self.img, (int(self.img.shape[1] * faktor), int(self.img.shape[0] * faktor)), interpolation= cv2.INTER_LINEAR)
+        if self.resize == True:
+            self.img = cv2.resize(self.img, (int(self.img.shape[1] * faktor), int(self.img.shape[0] * faktor)), interpolation= cv2.INTER_LINEAR)
         
         #img = cv2.imread("Permission denied..png")
         self.img = cv2.convertScaleAbs(self.img, alpha=1.3, beta=40)
@@ -65,7 +67,6 @@ class EigenerAlgorithmus:
         for strichindex in range(len(self.strichliste)-1, -1, -1):
             if len(self.strichliste[strichindex]) <= self.min_strichlänge:
                 self.strichliste.pop(strichindex)
-        print("Und nach dem Löschen von zu kurzen Linien, da warens nur noch "+str(len(self.strichliste)))
                 
     def linien_zusammenfügen(self):
         #startundendpunktliste=[[strichindex,punktx,punkty,startpunkt?-->Bool]]  --->      Liste aller Start und Endpunkte, immer abwechselnd erst Startpunkt der Liste, dann Endpunkt der Liste
@@ -115,6 +116,7 @@ class EigenerAlgorithmus:
                                     besondere_punktliste[besondere_punktliste.index(koordinate)+1] = None                                   #Entfallene Objekte entfernen
                                     besondere_punktliste[besondere_punktliste.index(koordinate)] = None
                                     self.strichliste[koordinate[0]] = None
+                                    break
                                     
                                 
 
@@ -159,7 +161,41 @@ class EigenerAlgorithmus:
             if self.strichliste[i] == None:
                 self.strichliste.pop(i)
 
-        print(len(self.strichliste),"Linien durch zusammenfügen!")
+    
+    def geradeLinienZusammenfassen(self):
+        for strich in self.strichliste:
+            neustrich=[strich[0]]
+            letzte=(0,0)            #Letzter Schritt
+            zähler=1                #Anzahl der bisherigen Wiederholungen
+            for schritt in strich[1:]:
+                if letzte == schritt:
+                    zähler+=1
+                else:
+                    neustrich.append((zähler*letzte[0],zähler*letzte[1]))
+                    letzte=schritt
+                    zähler=1
+            self.strichliste[self.strichliste.index(strich)]=neustrich
+    
+    def diagonaleLinienZusammenfasssen(self):
+        for strichnr in range(len(self.strichliste)):
+            strich=self.strichliste[strichnr]
+            neustrich=[strich[0]]
+            urschritt=(0,0)
+            zähler=1
+            jpunkt=[0,0]
+            for schritt in strich[1:]:
+                if abs(int((jpunkt[0])+int(schritt[0]))-int(urschritt[0]*(zähler+1)))<=self.lückentoleranz and abs(int(jpunkt[1]+schritt[1])-int(urschritt[1]*(zähler+1)))<=self.lückentoleranz:
+                    zähler+=1
+                    jpunkt[0]+=schritt[0]
+                    jpunkt[1]+=schritt[1]
+                else:
+                    neustrich.append((jpunkt[0],jpunkt[1]))
+                    urschritt=schritt
+                    zähler=1
+                    jpunkt=list(urschritt)
+
+            self.strichliste[strichnr]=neustrich
+
 
 
     def turtle(self):
@@ -183,12 +219,50 @@ class EigenerAlgorithmus:
         t.goto(1000, 1000)
         turtle.done()
 
-#E = EigenerAlgorithmus("schildkrote-charakter-cartoon-illustration-fyj0g3.jpg")
-#E = EigenerAlgorithmus("Schulimpressionen.jpg",strichlänge=40,wert=20)
-#cv2.imshow("linesEdges", E.edges)
-#E.erkennen()
-#print("Aus",len(E.strichliste),"werden")
-#E.linien_zusammenfügen()
-#E.kurzeLinienEntfernen()
-#E.turtle()
+def testen(doc="Schulimpressionen.jpg"):
+    E = EigenerAlgorithmus(doc,strichlänge=10,wert=20,lückentoleranz=2)
+
+    E.erkennen()
+
+    schritte=0
+    for i in E.strichliste:
+        schritte+=len(i)
+
+    cv2.imshow("linesEdges", E.edges)
+
+    print(f"Aus {len(E.strichliste)} Strichen und {schritte} Schritten werden")
+
+    E.linien_zusammenfügen()
+
+    print(len(E.strichliste)," Striche durch zusammenfügen")
+    
+    E.kurzeLinienEntfernen()
+
+    print(len(E.strichliste)," Striche nach dem Aussortieren")
+
+    schritte=0
+    for i in E.strichliste:
+        schritte+=len(i)
+    
+    print(f"Und aus {schritte} Schritten")
+    
+    E.geradeLinienZusammenfassen()
+
+    schritte=0
+    for i in E.strichliste:
+        schritte+=len(i)
+
+    print(f"werden {schritte} nach linearem Zusammenfassen")
+
+    E.diagonaleLinienZusammenfasssen()
+
+    schritte=0
+    for i in E.strichliste:
+        schritte+=len(i)
+    
+    print("werden",schritte,"nach diagonalem Zusammenfassen")
+
+    E.turtle()
+
+testen()
 #ab hier sinnlos weil turtel.done() ähnlich wie tk.mainloop()
