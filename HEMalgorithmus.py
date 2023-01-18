@@ -187,5 +187,5 @@ def testen(doc="Schulimpressionen.jpg"):
     print(time.time()-t,"Sekunden")
     E.turtle()
 
-testen("Manhattan.jpeg")
+#testen("Manhattan.jpeg")
 #ab hier sinnlos weil turtel.done() ähnlich wie tk.mainloop()
