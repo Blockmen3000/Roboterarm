@@ -1,17 +1,20 @@
-import numpy as np
+#import numpy as np
 from tkinter import *
 from tkinter import filedialog as fd
-from PIL import Image as im
-from PIL import ImageTk
+#from PIL import Image as im
+#from PIL import ImageTk
 import HEMalgorithmus as HEM
+#import test as ROBO
 
 class Benutzeroberfläche:
-    def __init__(self):
+    def __init__(self,info=False):
         self.algorithmus = HEM.EigenerAlgorithmus()
+        #self.roboter = ROBO.Roboter()
         
         self.fenster=Tk()
         self.fenster.title("Netflix")
         #self.fenster.geometry("1440x900+2000+50")
+        self.info=info
 
         fensterbreite = 1440
         fensterhöhe = 900
@@ -36,6 +39,12 @@ class Benutzeroberfläche:
         self.toleranzAnpassen_BTN = Button(self.fenster, text = "Toleranz anpassen", activebackground="#FF2223", bg=self.fensterfarbe, width=13, height=1, command=self.toleranzAnpassen)
         self.toleranzAnpassen_BTN.place(x = 1300, y = 790)
 
+        self.kalibrierung_BTN = Button(self.fenster, text = "Kalibrieren", activebackground="#777777", bg=self.fensterfarbe, width=13, height=1, command=self.kalibrierungsfensterErstellen)
+        self.kalibrierung_BTN.place(x = 1300, y = 15)
+
+        self.MALEN_BTN = Button(self.fenster, text = "MALEN", activebackground="#777777", bg=self.fensterfarbe, width=13, height=1, command=self.malen)
+        self.MALEN_BTN.place(x = 1300, y = 840)
+
         #Scales
         self.größe_SCL = Scale(self.fenster, from_=100, to=0, orient=VERTICAL, bg=self.fensterfarbe, relief=FLAT, length=720, border = 0)
         self.größe_SCL.place(x=40, y=48)
@@ -48,18 +57,76 @@ class Benutzeroberfläche:
        
         self.fenster.mainloop()
 
+    def malen(self):
+        try:
+            strichliste = self.algorithmus.strichliste
+        except NameError:
+            return
+        self.roboter.bildZeichnen(strichliste)
+
+    def kalibrierungsfensterErstellen(self):
+        # kafe = Kaliebrierungs-Fenster
+        self.kafe = Toplevel()
+        self.kafe.geometry("300x170")
+        self.kafe.configure(background=self.fensterfarbe)
+        self.eckliste = ["OL", "OR", "UR", "UL"]
+        self.akt_ecklisten_index = 0
+
+        self.kalibrierungsgeschwindigkeit = 1
+
+        #Label
+        self.anzeige_LBL = Label(self.kafe, text = "aktuelle Ecke: "+self.eckliste[0], bg=self.fensterfarbe)
+        self.anzeige_LBL.place(x = 15, y = 10)
+        
+        self.kafevelo_LBL = Label(self.kafe, text = "Geschwindigkeit der Kalibrierung", bg=self.fensterfarbe)
+        self.kafevelo_LBL.place(x = 15, y = 60)
+
+        #Buttons
+        self.näher_BTN = Button(self.kafe, text = "näher", activebackground="#777777", bg=self.fensterfarbe, width=13, height=1, command=self.kalibrierungs_NÄHER)
+        self.näher_BTN.place(x = 15, y = 30)
+
+        self.ferner_BTN = Button(self.kafe, text = "ferner", activebackground="#777777", bg=self.fensterfarbe, width=13, height=1, command=self.kalibrierungs_FERNER)
+        self.ferner_BTN.place(x = 150, y = 30)
+
+        self.ferner_BTN = Button(self.kafe, text = "nächster Kalibrierungsschritt", activebackground="#777777", bg=self.fensterfarbe, width=32, height=1, command=self.kalibrierung_NÄCHSTE)
+        self.ferner_BTN.place(x = 15, y = 130)
+
+        #Scales
+        self.kalibrierungsgeschwindigkeit_SCL = Scale(self.kafe, from_=1, to=10, orient=HORIZONTAL, bg=self.fensterfarbe, relief=FLAT, length=250, border = 0)
+        self.kalibrierungsgeschwindigkeit_SCL.place(x=15, y=80)
+        self.kalibrierungsgeschwindigkeit_SCL.set(1)
+
+
+    def kalibrierungs_NÄHER(self):
+        self.roboter.kalibrierung(1)
+
+    def kalibrierungs_FERNER(self):
+        self.roboter.kalibrierung(-1)
+
+    def kalibrierung_NÄCHSTE(self):
+        self.roboter.vierPunkteKalibrierung(self.eckliste[self.akt_ecklisten_index]) # aktuelle Position eintragen
+        self.roboter.stift_absetzen()
+        
+        if akt_ecklisten_index == 3: # Nach allen 4 Ecken kafe schließen
+            self.kafe.destroy()
+        else:
+            self.akt_ecklisten_index += 1
+        
+        self.anzeige_LBL.configure(text = "aktuelle Ecke: "+self.eckliste[self.akt_ecklisten_index])
+        self.roboter.gehezuEcke(self.eckliste[self.akt_ecklisten_index]) # zur nächsten Ecke gehen
+
     def webcam(self):
         pass
 
     def bildÖffnen(self):
         filepath = fd.askopenfilename()
         self.algorithmus.imgpath = filepath
-        if self.algorithmus.erkennen() == True:
+        if self.algorithmus.konvertieren(self.info) == True:
             self.bildPlazieren()
 
     def toleranzAnpassen(self):
         self.algorithmus.wert = self.toleranz_SCL.get()
-        if self.algorithmus.erkennen() == True:
+        if self.algorithmus.konvertieren(self.info) == True:
             self.bildPlazieren()
 
     def bildPlazieren(self):
@@ -130,4 +197,4 @@ class Benutzeroberfläche:
         return newEdges
 
 
-B = Benutzeroberfläche()
+B = Benutzeroberfläche(True)
