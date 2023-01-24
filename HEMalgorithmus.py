@@ -11,6 +11,34 @@ class EigenerAlgorithmus:
         self.lückentoleranz = lückentoleranz
         self.resize = resize
     
+    def konvertieren(self,info):
+        if self.erkennen()!=True:
+            return False
+
+        if info:
+            print(f"{len(self.strichliste)} Striche und {self.schritte_zählen()} Schritte erkannt")
+
+        self.kurzeLinienEntfernen()
+        if info:
+            print(f"noch {len(self.strichliste)} Striche und {self.schritte_zählen()} Schritte nach dem entfenen kurzer Linien")
+
+        self.geradeLinienZusammenfassen()
+        if info:
+            print(f"noch {self.schritte_zählen()} Schritte nach dem geraden Zusammenfassen")
+        
+        self.diagonaleLinienZusammenfasssen()
+        if info:
+            print(f"noch {self.schritte_zählen()} Schritte nach dem diagonalem Zusammenfassen")
+        
+        return True
+
+    
+    def schritte_zählen(self):
+        schritte=0
+        for i in self.strichliste:
+            schritte+=len(i)
+        return schritte
+    
     def erkennen(self):
         self.img = cv2.imread(self.imgpath)
         if format(self.img) == "None":
@@ -131,7 +159,7 @@ class EigenerAlgorithmus:
         t.speed(0.1)
         versatz = 400
         t.pensize(3)
-        t._tracer(0)
+        #t._tracer(0)
         t.penup()
         for strich in self.strichliste:
             t.goto((strich[0][0])-versatz, (strich[0][1]*(-1))+versatz) # zur absoluten Startposition teleportieren#
@@ -145,9 +173,8 @@ class EigenerAlgorithmus:
         t.goto(1000, 1000)
         turtle.done()
 
-def testen(doc="Schulimpressionen.jpg"):
-    t=time.time()
-    E = EigenerAlgorithmus(doc,strichlänge=10,wert=20,lückentoleranz=2)
+def testen(doc="MeisterJedi2.png"):
+    E = EigenerAlgorithmus(doc,strichlänge=20,wert=80,lückentoleranz=2)
 
     E.erkennen()
 
@@ -158,6 +185,10 @@ def testen(doc="Schulimpressionen.jpg"):
     cv2.imshow("linesEdges", E.edges)
 
     print(f"Aus {len(E.strichliste)} Strichen und {schritte} Schritten werden")
+
+    #E.linien_zusammenfügen()
+
+    print(len(E.strichliste)," Striche durch zusammenfügen")
     
     E.kurzeLinienEntfernen()
 
@@ -184,8 +215,13 @@ def testen(doc="Schulimpressionen.jpg"):
         schritte+=len(i)
     
     print("werden",schritte,"nach diagonalem Zusammenfassen")
-    print(time.time()-t,"Sekunden")
+    doument = open("diegeheimeliste.txt","w")
+    doument.write(str(E.strichliste))
+
     E.turtle()
+
+#testen()
+
 
 #testen("Manhattan.jpeg")
 #ab hier sinnlos weil turtel.done() ähnlich wie tk.mainloop()
