@@ -1,5 +1,5 @@
 import turtle
-
+import time
 import cv2
 
 
@@ -24,7 +24,6 @@ class EigenerAlgorithmus:
         
         gray = cv2.cvtColor(self.img, cv2.COLOR_BGR2GRAY)
         self.edges = cv2.Canny(gray, self.wert, 200)
-
         
         self.auflösung = (len(self.edges[0]), len(self.edges)) #(x,y)
         self.strichliste = []
@@ -35,7 +34,7 @@ class EigenerAlgorithmus:
 
                     # Roboter bekommt Liste: strich = [(x,y), (relativx, relativy), (relativx, relativy), ...]
                     
-                    strich = [(x,y)] #Liste mit absoluten Startkooredinaten erstellt
+                    nachstrich = [] #Liste mit absoluten Startkooredinaten erstellt
                     x_rel = 0
                     y_rel = 0
                     while self.umliegendeErkennen(x + x_rel, y + y_rel) != False:
@@ -44,8 +43,29 @@ class EigenerAlgorithmus:
                         x_rel += tupel[0]
                         y_rel += tupel[1]
                         self.edges[y + y_rel][x + x_rel] = 40
-                        strich.append(tupel) # Einfügen von relativen Koordinaten
+                        nachstrich.append(tupel) # Einfügen von relativen Koordinaten
                         #print("Strich",strich)
+                    vorstrich=[]
+                    x_rel = 0
+                    y_rel = 0
+                    while self.umliegendeErkennen(x + x_rel, y + y_rel) != False:
+                        #print("rel",x_rel, y_rel)
+                        tupel = self.umliegendeErkennen(x + x_rel, y + y_rel)
+                        x_rel += tupel[0]
+                        y_rel += tupel[1]
+                        self.edges[y + y_rel][x + x_rel] = 40
+                        vorstrich.append(tupel) # Einfügen von relativen Koordinaten
+                        #print("Strich",strich)
+
+                    strich=[(x+x_rel,y+y_rel)]
+                    
+                    for schritt in range(len(vorstrich)-1,-1,-1):
+                        strich.append((vorstrich[schritt][0]*(-1),vorstrich[schritt][1]*(-1)))
+
+                    strich+=nachstrich
+                    
+
+
                         
                     self.strichliste.append(strich)
         #cv2.imshow("linesEdges", self.edges)
@@ -68,100 +88,6 @@ class EigenerAlgorithmus:
             if len(self.strichliste[strichindex]) <= self.min_strichlänge:
                 self.strichliste.pop(strichindex)
                 
-    def linien_zusammenfügen(self):
-        #startundendpunktliste=[[strichindex,punktx,punkty,startpunkt?-->Bool]]  --->      Liste aller Start und Endpunkte, immer abwechselnd erst Startpunkt der Liste, dann Endpunkt der Liste
-        besondere_punktliste=[]
-        for strich in self.strichliste:
-            #Startpunkte hinzufügen
-            besondere_punktliste.append([self.strichliste.index(strich),strich[0][0],strich[0][1],True])
-            #Endpunkte berechnen
-            endpunktx=strich[0][0]
-            endpunkty=strich[0][1]
-            for schritt in strich[1:]:
-                endpunktx+=schritt[0]
-                endpunkty+=schritt[1]
-            #Endpunkte hinzufügen
-            besondere_punktliste.append([self.strichliste.index(strich),endpunktx,endpunkty,False])
-
-        #Punkte vergleichen
-        for koordinate in besondere_punktliste:
-            if koordinate != None:
-                kx=koordinate[1]
-                ky=koordinate[2]
-                for punkt in besondere_punktliste:
-                    if punkt!=None:
-                        px=punkt[1]
-                        py=punkt[2]
-                        #Überprüfen, ob es sich nicht um den gleichen Punkt handelt
-                        if koordinate[0] != punkt[0]:
-                            
-                            if abs(px-kx) < 2 and abs(py-ky) < 2:
-
-                                if koordinate[3] == False and punkt[3] == True:                         #Endpunkt mit Startpunkt verknüpfen
-                                    self.strichliste[koordinate[0]].append((px-kx,py-ky))               #Differenz zwischen End- und Startpunkt berechnen
-                                    self.strichliste[koordinate[0]] += self.strichliste[punkt[0]][1:]   #Listen zusammenühren
-                                    besondere_punktliste[besondere_punktliste.index(punkt)+1][0] = koordinate[0]                            #Strichindex des Endpunkts der Startpunktlinie auf den der Endpunktlinie setzen
-                                    besondere_punktliste[besondere_punktliste.index(koordinate)] = besondere_punktliste[besondere_punktliste.index(punkt)+1] 
-                                    besondere_punktliste[besondere_punktliste.index(punkt)+1] = None                                        #Entfallene Objekte entfernen
-                                    besondere_punktliste[besondere_punktliste.index(punkt)] = None
-                                    self.strichliste[punkt[0]] = None
-                                    
-                                
-                                   
-                                elif koordinate[3] == True and punkt[3] == False:                       #Endpunkt mit Startpunkt verknüpfen
-                                    self.strichliste[punkt[0]].append((kx-px,ky-py))                    #Differenz zwischen End- und Startpunkt berechnen
-                                    self.strichliste[punkt[0]] += self.strichliste[koordinate[0]][1:]   #Listen zusammenühren
-                                    besondere_punktliste[besondere_punktliste.index(koordinate)+1][0] = punkt[0]                            #Strichindex des Startpunkts der Endpunktlinie auf den der Startpunktlinie setzen
-                                    besondere_punktliste[besondere_punktliste.index(punkt)]=besondere_punktliste[besondere_punktliste.index(koordinate)+1]
-                                    besondere_punktliste[besondere_punktliste.index(koordinate)+1] = None                                   #Entfallene Objekte entfernen
-                                    besondere_punktliste[besondere_punktliste.index(koordinate)] = None
-                                    self.strichliste[koordinate[0]] = None
-                                    break
-                                    
-                                
-
-                                elif koordinate[3] == False and punkt[3] == False:                      #Endpunkt mit Endpunkt verknüpfen
-                                    self.strichliste[koordinate[0]].append((px-kx,py-ky))               #Differenz zwischen End- und Endpunkt berechnen
-                                    for s in range(len(self.strichliste[punkt[0]])-1,0,-1):             #Liste rückwärts durchgehen
-                                        schritt = self.strichliste[punkt[0]][s]
-                                        sx = schritt[0]
-                                        sy = schritt[1]
-                                        self.strichliste[koordinate[0]].append(((-1)*sx,(-1)*sy))       #Koordinaten umkehren und zur Liste hinzufügen
-                                    besondere_punktliste[besondere_punktliste.index(punkt)-1][0] = koordinate[0]                            # Strichindex der einen Endpunktlinie auf den der anderen Endpunktlinie setzen
-                                    besondere_punktliste[besondere_punktliste.index(punkt)-1][3] = False
-                                    besondere_punktliste[besondere_punktliste.index(koordinate)] = besondere_punktliste[besondere_punktliste.index(punkt)-1]
-                                    besondere_punktliste[besondere_punktliste.index(punkt)+1] = None
-                                    besondere_punktliste[besondere_punktliste.index(punkt)] = None
-                                    self.strichliste[punkt[0]] = None
-                                    
-
-                                elif koordinate[3] == True and punkt[3] == True:                        #Startpunkt mit Startpunkt verknüpfen
-                                    #Liste für Pfeil der Startkoordinate Koordinate gefüllt mit Absoluter Startkoordinate des neuen verknüpften Pfeils
-                                    newkoordinate = [(besondere_punktliste[besondere_punktliste.index(koordinate)+1][1], besondere_punktliste[besondere_punktliste.index(koordinate)+1][2])]
-                                    for s in range(len(self.strichliste[koordinate[0]])-1,0,-1):
-                                        schritt = self.strichliste[koordinate[0]][s]
-                                        sx = schritt[0]
-                                        sy = schritt[1]
-                                        newkoordinate.append((sx*(-1),sy*(-1)))
-                                    self.strichliste[koordinate[0]] = newkoordinate
-                                    self.strichliste[koordinate[0]].append((px-kx,py-ky))               #Differenz zwischen End- und Startpunkt berechnen
-                                    self.strichliste[koordinate[0]] += self.strichliste[punkt[0]][1:]   #Listen zusammenühren
-                                    koordinate = besondere_punktliste[besondere_punktliste.index(koordinate)+1]
-                                    besondere_punktliste[besondere_punktliste.index(koordinate)-1] = besondere_punktliste[besondere_punktliste.index(koordinate)]               #alter Endpunkt von Koordinater wird neuer Startpunkt
-                                    besondere_punktliste[besondere_punktliste.index(punkt)+1][0] = koordinate[0]
-                                    besondere_punktliste[besondere_punktliste.index(koordinate)+1] = besondere_punktliste[besondere_punktliste.index(punkt)+1]                  #alter Endpunkt von Punkt wird Endpunkt von Koordinate
-                                    besondere_punktliste[besondere_punktliste.index(punkt)+1] = None                                        #Entfallene Objekte entfernen
-                                    besondere_punktliste[besondere_punktliste.index(punkt)] = None 
-                                    self.strichliste[punkt[0]] = None
-                                    
-
-                                else:
-                                    print("Diese Meldung ist unmöglich. Du Magier. Oder Hacker!")                      
-        for i in range(len(self.strichliste)-1, 0, -1):
-            if self.strichliste[i] == None:
-                self.strichliste.pop(i)
-
-    
     def geradeLinienZusammenfassen(self):
         for strich in self.strichliste:
             neustrich=[strich[0]]
@@ -220,6 +146,7 @@ class EigenerAlgorithmus:
         turtle.done()
 
 def testen(doc="Schulimpressionen.jpg"):
+    t=time.time()
     E = EigenerAlgorithmus(doc,strichlänge=10,wert=20,lückentoleranz=2)
 
     E.erkennen()
@@ -231,10 +158,6 @@ def testen(doc="Schulimpressionen.jpg"):
     cv2.imshow("linesEdges", E.edges)
 
     print(f"Aus {len(E.strichliste)} Strichen und {schritte} Schritten werden")
-
-    E.linien_zusammenfügen()
-
-    print(len(E.strichliste)," Striche durch zusammenfügen")
     
     E.kurzeLinienEntfernen()
 
@@ -261,8 +184,8 @@ def testen(doc="Schulimpressionen.jpg"):
         schritte+=len(i)
     
     print("werden",schritte,"nach diagonalem Zusammenfassen")
-
+    print(time.time()-t,"Sekunden")
     E.turtle()
 
-testen()
+#testen("Manhattan.jpeg")
 #ab hier sinnlos weil turtel.done() ähnlich wie tk.mainloop()
