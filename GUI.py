@@ -1,9 +1,10 @@
-#import numpy as np
+import numpy as np
 from tkinter import *
 from tkinter import filedialog as fd
-#from PIL import Image as im
-#from PIL import ImageTk
+from PIL import Image as im
+from PIL import ImageTk
 import HEMalgorithmus as HEM
+import time
 #import test as ROBO
 
 class Benutzeroberfläche:
@@ -50,11 +51,27 @@ class Benutzeroberfläche:
         self.größe_SCL.place(x=40, y=48)
         self.größe_SCL.set(100)
 
-        self.toleranz_SCL = Scale(self.fenster, from_=0, to=255, orient=HORIZONTAL, bg=self.fensterfarbe, relief=FLAT, length=720, border = 0)
+        self.toleranz_LBL = Label(self.fenster,text="Kontrast-\ntoleranz:",bg=self.fensterfarbe,justify=LEFT)
+        self.toleranz_LBL.place(x=35,y=790)
+
+        self.toleranz_SCL = Scale(self.fenster, from_=0, to=255, orient=HORIZONTAL, bg=self.fensterfarbe, relief=FLAT, length=1150, border = 0)
         self.toleranz_SCL.place(x=115, y=790)
         self.toleranz_SCL.set(80)
 
-       
+        self.minstrl_LBL = Label(self.fenster,text="minimale\nStrichlänge:",bg=self.fensterfarbe,justify=LEFT) #minstrl: minimale Strichlänge
+        self.minstrl_LBL.place(x=35,y=840)
+
+        self.minstrl_SCL = Scale(self.fenster, from_=0, to=50, orient=HORIZONTAL, bg=self.fensterfarbe, relief=FLAT, length=550, border = 0)
+        self.minstrl_SCL.place(x=115, y=840)
+        self.minstrl_SCL.set(20)
+
+        self.luetol_LBL = Label(self.fenster,text="Lücken-\ntoleranz:",bg=self.fensterfarbe,justify=LEFT) #luetol: Lückentoleranz
+        self.luetol_LBL.place(x=690,y=840)
+
+        self.luetol_SCL = Scale(self.fenster, from_=0, to=10, orient=HORIZONTAL, bg=self.fensterfarbe, relief=FLAT, length=500, border = 0)
+        self.luetol_SCL.place(x=765, y=840)
+        self.luetol_SCL.set(5)
+
         self.fenster.mainloop()
 
     def malen(self):
@@ -63,6 +80,7 @@ class Benutzeroberfläche:
         except NameError:
             return
         self.roboter.bildZeichnen(strichliste)
+        self.fenster.wait_variable(self.roboter.weiter)
 
     def kalibrierungsfensterErstellen(self):
         # kafe = Kaliebrierungs-Fenster
@@ -88,8 +106,8 @@ class Benutzeroberfläche:
         self.ferner_BTN = Button(self.kafe, text = "ferner", activebackground="#777777", bg=self.fensterfarbe, width=13, height=1, command=self.kalibrierungs_FERNER)
         self.ferner_BTN.place(x = 150, y = 30)
 
-        self.ferner_BTN = Button(self.kafe, text = "nächster Kalibrierungsschritt", activebackground="#777777", bg=self.fensterfarbe, width=32, height=1, command=self.kalibrierung_NÄCHSTE)
-        self.ferner_BTN.place(x = 15, y = 130)
+        self.nächster_BTN = Button(self.kafe, text = "nächster Kalibrierungsschritt", activebackground="#777777", bg=self.fensterfarbe, width=32, height=1, command=self.kalibrierung_NÄCHSTE)
+        self.nächster_BTN.place(x = 15, y = 130)
 
         #Scales
         self.kalibrierungsgeschwindigkeit_SCL = Scale(self.kafe, from_=1, to=10, orient=HORIZONTAL, bg=self.fensterfarbe, relief=FLAT, length=250, border = 0)
@@ -125,7 +143,9 @@ class Benutzeroberfläche:
             self.bildPlazieren()
 
     def toleranzAnpassen(self):
-        self.algorithmus.wert = self.toleranz_SCL.get()
+        self.algorithmus.wert = 255-self.toleranz_SCL.get()
+        self.algorithmus.min_strichlänge = self.minstrl_SCL.get()
+        self.algorithmus.lückentoleranz = self.luetol_SCL.get()
         if self.algorithmus.konvertieren(self.info) == True:
             self.bildPlazieren()
 

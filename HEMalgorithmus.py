@@ -1,6 +1,6 @@
 import turtle
-import time
 import cv2
+from time import time
 
 
 class EigenerAlgorithmus:
@@ -16,6 +16,7 @@ class EigenerAlgorithmus:
             return False
 
         if info:
+            t=time()
             print(f"{len(self.strichliste)} Striche und {self.schritte_zählen()} Schritte erkannt")
 
         self.kurzeLinienEntfernen()
@@ -29,6 +30,7 @@ class EigenerAlgorithmus:
         self.diagonaleLinienZusammenfasssen()
         if info:
             print(f"noch {self.schritte_zählen()} Schritte nach dem diagonalem Zusammenfassen")
+            print(f"gesammte Rechendauer: {time()-t} Sekunden")
         
         return True
 
