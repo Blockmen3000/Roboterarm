@@ -13,6 +13,8 @@ import sys
 import time
 import math
 import HEMalgorithmus_v12 as HEM
+from Ladebalken import Ladebalken
+
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 
@@ -24,6 +26,8 @@ class Roboter:
         self.arm.motion_enable(enable=True)
         self.arm.set_mode(0)
         self.arm.set_state(state=0)
+        
+        self.weiter=True
 
         self.schreibEbene = 415#30
         self.absetzEbene = self.schreibEbene - 20
@@ -37,22 +41,30 @@ class Roboter:
 
 
     def bildZeichnen(self, strichliste):
+        self.weiter=False
         R.reset()
+        self.ladefenster = Ladebalken()
+        self.ladefenster.bar1set(len(strichliste))
         for strich in strichliste:
             self.strichZeichnen(strich)
+            self.ladefenster.bar1add(1)
+        self.ladefenster.destroy()
         R.reset(True)
+        self.weiter=True
 
     def strichZeichnen(self, strich):
         start = strich[0]
         ebene_x = (self.größe[1][0] + (start[0] * self.verhältnis))*(-1)
         ebene_y = abs(self.größe[0][1] - (start[1] * self.verhältnis)) #Maximale y-Koordinate minus y-Koordinate des Striches
         print("STARTKOORDINATEN",ebene_x, ebene_y)
+        self.ladefenster.bar2set(len(strich))
         #self.updateEbenen(start[0]*self.verhältnis, start[1]*self.verhältnis)
         self.arm.set_position(self.absetzEbene, ebene_x , ebene_y , wait = True) #Gehe zur Startposition
         self.stift_aufsetzen()
 
         for i in range(len(strich)-1):
             self.relativeKoordinateZeichnen(strich[i+1])
+            self.ladefenster.bar2add(1)
 
         self.stift_absetzen()
 
@@ -189,6 +201,8 @@ class Roboter:
         self.arm.reset(wait=True)
         time.sleep(0.5)
 
+
+    
         
 ##try:
 ##    R = Roboter()
