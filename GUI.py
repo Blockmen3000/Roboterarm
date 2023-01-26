@@ -1,6 +1,7 @@
-import numpy as np
 from tkinter import *
 from tkinter import filedialog as fd
+
+import numpy as np
 from PIL import Image as im
 from PIL import ImageTk
 

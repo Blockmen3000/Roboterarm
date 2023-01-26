@@ -7,14 +7,15 @@
 # Input: strichliste = [strich1, strich2, strich3, strich4, ...]
 #        strich = [(absoultx, absoluty), (rel_x, rel_y), (rel_x, rel_y), (rel_x, rel_y), ...]
 
-from xarm.wrapper import XArmAPI
+import math
 import os
 import sys
-from time import sleep
-import math
-import HEMalgorithmus_v12 as HEM
-from Ladebalken import Ladebalken
+from time import sleep, time
 
+from xarm.wrapper import XArmAPI
+
+import HEMalgorithmus as HEM
+from Ladebalken import Ladebalken
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '../../..'))
 
@@ -41,6 +42,7 @@ class Roboter:
 
     def bildZeichnen(self, strichliste):
         R.reset()
+        t=time()
         self.ladefenster = Ladebalken()
         self.ladefenster.bar1set(len(strichliste))
         for strich in strichliste:
@@ -48,6 +50,7 @@ class Roboter:
             self.ladefenster.bar1add(1)
         self.ladefenster.destroy()
         R.reset(True)
+        print(f"Zeichnung abgeschlossen in {round(time()-t)//60} Minuten und {round(time()-t)%60} Sekunden")
 
     def strichZeichnen(self, strich):
         start = strich[0]

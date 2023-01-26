@@ -1,6 +1,6 @@
 from tkinter import *
 from tkinter.ttk import Progressbar, Style
-import time
+
 
 class Ladebalken:
 
