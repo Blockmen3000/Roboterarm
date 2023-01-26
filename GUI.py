@@ -3,8 +3,8 @@ from tkinter import *
 from tkinter import filedialog as fd
 from PIL import Image as im
 from PIL import ImageTk
+
 import HEMalgorithmus as HEM
-import time
 #import test as ROBO
 
 class Benutzeroberfläche:
@@ -80,7 +80,6 @@ class Benutzeroberfläche:
         except NameError:
             return
         self.roboter.bildZeichnen(strichliste)
-        self.fenster.wait_variable(self.roboter.weiter)
 
     def kalibrierungsfensterErstellen(self):
         # kafe = Kaliebrierungs-Fenster
@@ -125,7 +124,7 @@ class Benutzeroberfläche:
         self.roboter.vierPunkteKalibrierung(self.eckliste[self.akt_ecklisten_index]) # aktuelle Position eintragen
         self.roboter.stift_absetzen()
         
-        if akt_ecklisten_index == 3: # Nach allen 4 Ecken kafe schließen
+        if self.akt_ecklisten_index == 3: # Nach allen 4 Ecken kafe schließen
             self.kafe.destroy()
         else:
             self.akt_ecklisten_index += 1

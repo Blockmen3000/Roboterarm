@@ -10,7 +10,7 @@
 from xarm.wrapper import XArmAPI
 import os
 import sys
-import time
+from time import sleep
 import math
 import HEMalgorithmus_v12 as HEM
 from Ladebalken import Ladebalken
@@ -27,7 +27,6 @@ class Roboter:
         self.arm.set_mode(0)
         self.arm.set_state(state=0)
         
-        self.weiter=True
 
         self.schreibEbene = 415#30
         self.absetzEbene = self.schreibEbene - 20
@@ -41,7 +40,6 @@ class Roboter:
 
 
     def bildZeichnen(self, strichliste):
-        self.weiter=False
         R.reset()
         self.ladefenster = Ladebalken()
         self.ladefenster.bar1set(len(strichliste))
@@ -50,7 +48,6 @@ class Roboter:
             self.ladefenster.bar1add(1)
         self.ladefenster.destroy()
         R.reset(True)
-        self.weiter=True
 
     def strichZeichnen(self, strich):
         start = strich[0]
@@ -87,14 +84,14 @@ class Roboter:
         #self.updateEbenen(position[1], position[2])
         position[0] = self.absetzEbene
         self.arm.set_position(position[0], position[1], position[2], wait = True)
-        time.sleep(0.00001)
+        sleep(0.00001)
 
     def stift_aufsetzen(self):
         position = self.arm.get_position()[1]
         #self.updateEbenen(position[1], position[2])
         position[0] = self.schreibEbene
         self.arm.set_position(position[0], position[1], position[2], wait = True)
-        time.sleep(0.00001)
+        sleep(0.00001)
 
 
     def updateEbenen(self, z, y):
@@ -159,7 +156,7 @@ class Roboter:
             position[0] += wert
         print("---- POSITION ----", position)
         self.arm.set_position(position[0], position[1], position[2], wait = True)
-        time.sleep(0.00001)
+        sleep(0.00001)
 
 
     def test(self):
@@ -196,10 +193,10 @@ class Roboter:
             position = self.arm.get_position()[1]
             position[0] = 100
             self.arm.set_position(position[0], position[1], position[2], wait = True)
-            time.sleep(0.5)
+            sleep(0.5)
 
         self.arm.reset(wait=True)
-        time.sleep(0.5)
+        sleep(0.5)
 
 
     
