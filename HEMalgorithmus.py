@@ -29,7 +29,7 @@ class EigenerAlgorithmus:
         
         self.diagonaleLinienZusammenfasssen()
         if info:
-            print(f"noch {self.schritte_zählen()} Schritte nach dem diagonalem Zusammenfassen")
+            print(f"noch {self.schritte_zählen()} Schritte nach dem diagonalen Zusammenfassen")
             print(f"gesammte Rechendauer: {time()-t} Sekunden")
         
         return True
