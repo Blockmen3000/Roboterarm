@@ -18,14 +18,13 @@ Es besitzt folgende Methoden:
 class Ladebalken:
 
     def __init__(self) -> None:
-        self.fenster=Tk()
+        self.__fenster=Tk()
 
-        self.bg = "#AAA"
-        self.fenster.config(bg=self.bg)
-        self.fenster.title("Fortschritt")
+        self.__bg = "#AAA"
+        self.__fenster.config(bg=self.__bg)
+        self.__fenster.title("Zeichenfortschritt")
+        self.__fenster.resizable(False,False)
 
-        self.style = Style(self.fenster)
-        self.style.theme_use("default")
         self.__style = Style(self.__fenster)
         self.__style.theme_use("default")
         self.__style.configure("blue.Horizontal.TProgressbar", background='blue',troughcolor="gray",borderwidth=0)
