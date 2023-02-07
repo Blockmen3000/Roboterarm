@@ -1,7 +1,20 @@
+#Version 1.0
 from tkinter import *
 from tkinter.ttk import Progressbar, Style
+from time import sleep
 
 
+'''
+ERKLÄRUNG LADEBALKEN:
+Ein Objekt der Klasse Ladebalken besteht aus einem Fenster mit zwei Ladebalken sowie Beschriftung.
+Es besitzt folgende Methoden:
+- bar1set(max): setzt den Wert des ersten Balkens (Striche) auf 0 und das Maximum auf max.
+- bar2set(max): setzt den Wert des ersten Balkens (Schritte) auf 0 und das Maximum auf max.
+- bar1add(wert=1): addiert den eingegebenen Wert auf den Wert des ersten Ladebalkens.
+- bar1add(wert=1): addiert den eingegebenen Wert auf den Wert des zweiten Ladebalkens.
+- destroy()
+- test(): lässt einmal laufen
+'''
 class Ladebalken:
 
     def __init__(self) -> None:
@@ -10,64 +23,80 @@ class Ladebalken:
         self.bg = "#AAA"
         self.fenster.config(bg=self.bg)
         self.fenster.title("Fortschritt")
-        self.fenster.resizable(False,False)
 
         self.style = Style(self.fenster)
         self.style.theme_use("default")
-        self.style.configure("blue.Horizontal.TProgressbar", background='blue',troughcolor="gray",borderwidth=0)
+        self.__style = Style(self.__fenster)
+        self.__style.theme_use("default")
+        self.__style.configure("blue.Horizontal.TProgressbar", background='blue',troughcolor="gray",borderwidth=0)
 
 
-        self.bar1wert_VAR = IntVar(self.fenster)
-        self.bar1max = 100
-        self.bar1text_VAR = StringVar(self.fenster)
-        self.bar1text_VAR.set("0 von x Strichen abgeschlossen")
+        self.__bar1wert_VAR = IntVar(self.__fenster)
+        self.__bar1max = 100
+        self.__bar1text_VAR = StringVar(self.__fenster)
+        self.__bar1text_VAR.set("0 von x Strichen abgeschlossen")
 
-        self.bar1_PGB = Progressbar(self.fenster,length=300,variable=self.bar1wert_VAR,style="blue.Horizontal.TProgressbar",maximum=self.bar1max)
-        self.bar1_PGB.pack(padx=10,pady=10)
+        self.__bar1_PGB = Progressbar(self.__fenster,length=300,variable=self.__bar1wert_VAR,style="blue.Horizontal.TProgressbar",maximum=self.__bar1max)
+        self.__bar1_PGB.pack(padx=10,pady=10)
 
-        self.bar1_LBL = Label(self.fenster,textvariable=self.bar1text_VAR,bg=self.bg)
-        self.bar1_LBL.pack(padx=10,pady=10)
+        self.__bar1_LBL = Label(self.__fenster,textvariable=self.__bar1text_VAR,bg=self.__bg)
+        self.__bar1_LBL.pack(padx=10,pady=10)
 
-        self.bar2wert_VAR = IntVar(self.fenster)
-        self.bar2max = 100
-        self.bar2text_VAR = StringVar(self.fenster)
-        self.bar2text_VAR.set("0 von x Schritten abgeschlossen")
+        self.__bar2wert_VAR = IntVar(self.__fenster)
+        self.__bar2max = 100
+        self.__bar2text_VAR = StringVar(self.__fenster)
+        self.__bar2text_VAR.set("0 von x Schritten des Strichs abgeschlossen")
 
-        self.bar2_PGB = Progressbar(self.fenster,length=300,variable=self.bar2wert_VAR,style="blue.Horizontal.TProgressbar",maximum=self.bar2max)
-        self.bar2_PGB.pack(padx=10,pady=10)
+        self.__bar2_PGB = Progressbar(self.__fenster,length=300,variable=self.__bar2wert_VAR,style="blue.Horizontal.TProgressbar",maximum=self.__bar2max)
+        self.__bar2_PGB.pack(padx=10,pady=10)
 
-        self.bar2_LBL = Label(self.fenster,textvariable=self.bar2text_VAR,bg=self.bg)
-        self.bar2_LBL.pack(padx=10,pady=10)
+        self.__bar2_LBL = Label(self.__fenster,textvariable=self.__bar2text_VAR,bg=self.__bg)
+        self.__bar2_LBL.pack(padx=10,pady=10)
 
-        self.fenster.mainloop()
+        #self.test()
+        self.__fenster.mainloop()
     
             
     
     def bar1set(self,max=100):
-        self.bar1max = max
-        self.bar1_PGB.config(maximum=self.bar1max,value=0)
-        self.bar1wert_VAR.set(0)
-        self.bar1text_VAR.set(f"0 von {self.bar1max} Strichen abgeschlossen")
-        self.fenster.update()
+        self.__bar1max = max
+        self.__bar1_PGB.config(maximum=self.__bar1max,value=0)
+        self.__bar1wert_VAR.set(0)
+        self.__bar1text_VAR.set(f"0 von {self.__bar1max} Strichen abgeschlossen")
+        self.__fenster.update()
     
 
     def bar1add(self,wert=1):
-        self.bar1wert_VAR.set(self.bar1wert_VAR.get()+wert)
-        self.bar1text_VAR.set(f"{self.bar1wert_VAR.get()} von {self.bar1max} Strichen abgeschlossen")
+        self.__bar1wert_VAR.set(self.__bar1wert_VAR.get()+wert)
+        self.__bar1text_VAR.set(f"{self.__bar1wert_VAR.get()} von {self.__bar1max} Strichen abgeschlossen")
+        self.__fenster.update()
 
     def bar2set(self,max=100):
-        self.bar2max = max
-        self.bar2_PGB.config(maximum=self.bar2max,value=0)
-        self.bar2wert_VAR.set(0)
-        self.bar2text_VAR.set(f"0 von {self.bar2max} Schritten abgeschlossen")
-        self.fenster.update()
+        self.__bar2max = max
+        self.__bar2_PGB.config(maximum=self.__bar2max,value=0)
+        self.__bar2wert_VAR.set(0)
+        self.__bar2text_VAR.set(f"0 von {self.__bar2max} Schritten des Strichs abgeschlossen")
+        self.__fenster.update()
     
 
     def bar2add(self,wert=1):
-        self.bar2wert_VAR.set(self.bar2wert_VAR.get()+wert)
-        self.bar2text_VAR.set(f"{self.bar2wert_VAR.get()} von {self.bar2max} Schritten abgeschlossen")
+        self.__bar2wert_VAR.set(self.__bar2wert_VAR.get()+wert)
+        self.__bar2text_VAR.set(f"{self.__bar2wert_VAR.get()} von {self.__bar2max} Schritten des Strichs abgeschlossen")
+        self.__fenster.update()
     
     def destroy(self):
-        self.fenster.destroy()
+        self.__fenster.destroy()
+    
+    def test(self):
+        self.bar1set(1000)
+        for i in range(1000):
+            self.bar1add()
+            self.bar2set(10)
+            for i in range(10):
+                self.bar2add()
+                sleep(0.001)
+            sleep(0.001)
+        self.destroy()
 
-#f=Ladebalken()
+
+f=Ladebalken()
