@@ -2,6 +2,7 @@
 from tkinter import *
 from tkinter.ttk import Progressbar, Style
 from time import sleep
+from random import randint
 
 
 '''
@@ -87,15 +88,20 @@ class Ladebalken:
         self.__fenster.destroy()
     
     def test(self):
-        self.bar1set(1000)
-        for i in range(1000):
+        r1 = randint(1,50)
+        self.bar1set(r1)
+        for i in range(r1):
             self.bar1add()
-            self.bar2set(10)
-            for i in range(10):
+            r2 = randint(1,100)
+            self.bar2set(r2)
+            for i in range(r2):
                 self.bar2add()
-                sleep(0.001)
+                if randint(0,50)> 49: # + (2*(i/r2))**4) 
+                    sleep(abs(2*(i/r2)+randint(-2,5)/10))
+                else:
+                    sleep(randint(0,10)/100)
             sleep(0.001)
         self.destroy()
 
 
-f=Ladebalken()
+#f=Ladebalken()
