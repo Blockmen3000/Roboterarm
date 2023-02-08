@@ -1,4 +1,4 @@
-#Version 1.0
+#Version 1.1
 from tkinter import Tk, Label, IntVar, StringVar
 from tkinter.ttk import Progressbar, Style
 from time import sleep
