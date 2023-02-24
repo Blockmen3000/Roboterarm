@@ -1,3 +1,4 @@
+#Version 1.1
 import numpy as np
 from tkinter import *
 from tkinter import filedialog as fd
@@ -5,12 +6,14 @@ from PIL import Image as im
 from PIL import ImageTk
 import HEMalgorithmus as HEM
 import time
-#import test as ROBO
+import test as ROBO
+import turtle
+from turtle import TurtleScreen, ScrolledCanvas, RawTurtle
 
 class Benutzeroberfläche:
     def __init__(self,info=False):
         self.algorithmus = HEM.EigenerAlgorithmus()
-        #self.roboter = ROBO.Roboter()
+        self.roboter = ROBO.Roboter()
         
         self.fenster=Tk()
         self.fenster.title("Netflix")
@@ -40,10 +43,10 @@ class Benutzeroberfläche:
         self.toleranzAnpassen_BTN = Button(self.fenster, text = "Toleranz anpassen", activebackground="#FF2223", bg=self.fensterfarbe, width=13, height=1, command=self.toleranzAnpassen)
         self.toleranzAnpassen_BTN.place(x = 1300, y = 790)
 
-        self.kalibrierung_BTN = Button(self.fenster, text = "Kalibrieren", activebackground="#777777", bg=self.fensterfarbe, width=13, height=1, command=self.kalibrierungsfensterErstellen)
+        self.kalibrierung_BTN = Button(self.fenster, text = "Kalibrieren", activebackground="#FF2223", bg=self.fensterfarbe, width=13, height=1, command=self.kalibrierungsfensterErstellen)
         self.kalibrierung_BTN.place(x = 1300, y = 15)
 
-        self.MALEN_BTN = Button(self.fenster, text = "MALEN", activebackground="#777777", bg=self.fensterfarbe, width=13, height=1, command=self.malen)
+        self.MALEN_BTN = Button(self.fenster, text = "MALEN", activebackground="#55aa00", bg=self.fensterfarbe, width=13, height=1, command=self.malen)
         self.MALEN_BTN.place(x = 1300, y = 840)
 
         #Scales
@@ -54,9 +57,16 @@ class Benutzeroberfläche:
         self.toleranz_LBL = Label(self.fenster,text="Kontrast-\ntoleranz:",bg=self.fensterfarbe,justify=LEFT)
         self.toleranz_LBL.place(x=35,y=790)
 
-        self.toleranz_SCL = Scale(self.fenster, from_=0, to=255, orient=HORIZONTAL, bg=self.fensterfarbe, relief=FLAT, length=1150, border = 0)
+        self.toleranz_SCL = Scale(self.fenster, from_=0, to=255, orient=HORIZONTAL, bg=self.fensterfarbe, relief=FLAT, length=550, border = 0)
         self.toleranz_SCL.place(x=115, y=790)
         self.toleranz_SCL.set(80)
+
+        self.dotol_LBL = Label(self.fenster,text="Dopplungs-\ntoleranz:",bg=self.fensterfarbe,justify=LEFT) #dotol: Dopplungstoleranz
+        self.dotol_LBL.place(x=690,y=790)
+
+        self.dotol_SCL = Scale(self.fenster, from_=0, to=10, orient=HORIZONTAL, bg=self.fensterfarbe, relief=FLAT, length=500, border = 0)
+        self.dotol_SCL.place(x=765, y=790)
+        self.dotol_SCL.set(0)
 
         self.minstrl_LBL = Label(self.fenster,text="minimale\nStrichlänge:",bg=self.fensterfarbe,justify=LEFT) #minstrl: minimale Strichlänge
         self.minstrl_LBL.place(x=35,y=840)
@@ -72,25 +82,32 @@ class Benutzeroberfläche:
         self.luetol_SCL.place(x=765, y=840)
         self.luetol_SCL.set(5)
 
+        
+
         self.fenster.mainloop()
 
     def malen(self):
         try:
             strichliste = self.algorithmus.strichliste
         except NameError:
+            print("abbruch")
             return
-        self.roboter.bildZeichnen(strichliste)
-        self.fenster.wait_variable(self.roboter.weiter)
+        bildbreite = len(self.algorithmus.edges[0])
+        bildhöhe = len(self.algorithmus.edges)
+        
+        self.roboter.bildZeichnen(strichliste, (bildbreite, bildhöhe))
+        #self.fenster.wait_variable(self.roboter.weiter)
 
     def kalibrierungsfensterErstellen(self):
         # kafe = Kaliebrierungs-Fenster
+        self.roboter.reset(True)
         self.kafe = Toplevel()
         self.kafe.geometry("300x170")
         self.kafe.configure(background=self.fensterfarbe)
         self.eckliste = ["OL", "OR", "UR", "UL"]
         self.akt_ecklisten_index = 0
 
-        self.kalibrierungsgeschwindigkeit = 1
+        self.roboter.gehezuEcke(self.eckliste[self.akt_ecklisten_index]) # zur ersten Ecke gehen
 
         #Label
         self.anzeige_LBL = Label(self.kafe, text = "aktuelle Ecke: "+self.eckliste[0], bg=self.fensterfarbe)
@@ -110,23 +127,26 @@ class Benutzeroberfläche:
         self.nächster_BTN.place(x = 15, y = 130)
 
         #Scales
-        self.kalibrierungsgeschwindigkeit_SCL = Scale(self.kafe, from_=1, to=10, orient=HORIZONTAL, bg=self.fensterfarbe, relief=FLAT, length=250, border = 0)
+        self.kalibrierungsgeschwindigkeit_SCL = Scale(self.kafe, from_=1, to=20, orient=HORIZONTAL, bg=self.fensterfarbe, relief=FLAT, length=250, border = 0)
         self.kalibrierungsgeschwindigkeit_SCL.place(x=15, y=80)
-        self.kalibrierungsgeschwindigkeit_SCL.set(1)
+        self.kalibrierungsgeschwindigkeit_SCL.set(10)
 
 
     def kalibrierungs_NÄHER(self):
-        self.roboter.kalibrierung(1)
+        self.roboter.kalibrierung(self.kalibrierungsgeschwindigkeit_SCL.get())
 
     def kalibrierungs_FERNER(self):
-        self.roboter.kalibrierung(-1)
+        self.roboter.kalibrierung(-1 * self.kalibrierungsgeschwindigkeit_SCL.get())
 
     def kalibrierung_NÄCHSTE(self):
         self.roboter.vierPunkteKalibrierung(self.eckliste[self.akt_ecklisten_index]) # aktuelle Position eintragen
-        self.roboter.stift_absetzen()
         
-        if akt_ecklisten_index == 3: # Nach allen 4 Ecken kafe schließen
+        if self.akt_ecklisten_index == 3: # Nach allen 4 Ecken kafe schließen
+            self.roboter.saveKalibrierungspunkte()
+            self.roboter.stift_absetzen()
             self.kafe.destroy()
+            self.roboter.reset(True)
+            return
         else:
             self.akt_ecklisten_index += 1
         
@@ -140,14 +160,19 @@ class Benutzeroberfläche:
         filepath = fd.askopenfilename()
         self.algorithmus.imgpath = filepath
         if self.algorithmus.konvertieren(self.info) == True:
-            self.bildPlazieren()
+            #self.bildPlazieren()
+            self.turtle()
+        else:
+            print("Error beim Erkennen des Bildes")
 
     def toleranzAnpassen(self):
         self.algorithmus.wert = 255-self.toleranz_SCL.get()
         self.algorithmus.min_strichlänge = self.minstrl_SCL.get()
         self.algorithmus.lückentoleranz = self.luetol_SCL.get()
+        self.algorithmus.doppungstoleranz = self.dotol_SCL.get()
         if self.algorithmus.konvertieren(self.info) == True:
-            self.bildPlazieren()
+            #self.bildPlazieren()
+            self.turtle()
 
     def bildPlazieren(self):
         for i in self.canvas.find_withtag("BILD"):
@@ -185,8 +210,14 @@ class Benutzeroberfläche:
         tupel2 = (x,y)
 
         if (tupel1[0] * tupel1[1]) > (tupel2[0] * tupel2[1]): # besseres Format mithilfe vom Flächeninhalt herausfinden
+            print(canvasbreite/bildbreite)
+            print(canvashöhe/bildhöhe)
+            self.verhältnis = canvasbreite/bildbreite
             return tupel1
         else:
+            print(canvasbreite/bildbreite)
+            print(canvashöhe/bildhöhe)
+            self.verhältnis = canvashöhe/bildhöhe
             return tupel2
 
     def resizeEdges(self, edges, newWidth, newHeight):
@@ -215,6 +246,33 @@ class Benutzeroberfläche:
                         wert = 255
                     newEdges[y][x] = abs(wert-255) # Pixel invertieren
         return newEdges
+
+    def turtle(self):
+        verhältnis = self.getVerhältnis(self.algorithmus.edges)
+        print(verhältnis)
+        self.canvas.delete("all")
+        screen = TurtleScreen(self.canvas)
+        t = turtle.RawTurtle(screen)
+        t.shape("circle")
+        t.color("black")
+        t.speed(0)
+        versatz_x = (len(self.algorithmus.edges[0]))/2
+        versatz_y = (len(self.algorithmus.edges))/2
+        t.pensize(3)
+        t._tracer(0)
+        t.penup()
+        for strich in self.algorithmus.strichliste:
+            t.goto(round((strich[0][0]-versatz_x)*self.verhältnis), round((strich[0][1]*(-1)+versatz_y)*self.verhältnis))
+            t.pendown()
+            for relcord in strich:
+                if relcord != strich[0]:
+                    turtx,turty=t.pos()
+                    t.goto(round(turtx+(relcord[0])*self.verhältnis),round(turty+(relcord[1]*(-1))*self.verhältnis))
+                    #t.goto(turtx+(relcord[0]),turty+(relcord[1]*(-1)))
+            t.penup()
+            t.color("black")
+        t.hideturtle()
+        t.goto(len(self.algorithmus.edges[0])*2,len(self.algorithmus.edges)*2)
 
 
 B = Benutzeroberfläche(True)
