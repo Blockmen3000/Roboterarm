@@ -1,7 +1,7 @@
 #Version 1.2
 
 class Kugeldings:
-    def __init__(self, ebene, boden, radius = 700 ):   #Ebene:[stützvekor,richtungsvektor1,richtungsvektor2]
+    def __init__(self, ebene, boden = 280, radius = 700 ):   #Ebene:[stützvekor,richtungsvektor1,richtungsvektor2]
         self.stützvektor = ebene[0]
         self.richtungsvektor1 = ebene[1]
         self.richtungsvektor2 = ebene[2]
@@ -14,9 +14,9 @@ class Kugeldings:
         z = self.boden
         x = ((r1*rr-r3*rp)*z-(r1*rq-r2*rp)*y+r1*(rq*s3-rr*s2)-r2*(rp*s3-rr*s1)+r3*(rp*s2-rq*s1))/(r2*rr-r3*rq)
         self.ursprung = [x,y,z]                     # x = ebene,  y = 0, z = boden
-        self.kugelmitte = (0,0,112)
+        self.kugelmitte = (0,0,0)
     
-    #eckenAusrechnen(verhältnis: float) --> (OL: (y,z) ,OR: (y,z) ,UL: (y,z) ,UR: (y,z))
+    #eckenAusrechnen(verhältnis: float) --> (OL: (y,z), UR: (y,z))
     def eckenAusrechnen(self,verhältnis):           #Verhältnis: Breite/Höhe
 
         y = verhältnis/2
@@ -62,7 +62,7 @@ class Kugeldings:
         else:
             x,y,z = x2,y2,z2
         
-        return ((y,z),(-y,z),(y,self.boden),(-y,self.boden))
+        return [[-y,z], [y,self.boden]]
 
         
 

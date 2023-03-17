@@ -1,61 +1,72 @@
-# Version 1.6 (Alpha)
+# Version 1.8 (Alpha)
 import turtle
 import cv2
 from time import time
 from numpy import zeros
+import RobotQR
+from copy import deepcopy
 
 
 class EigenerAlgorithmus:
-    def __init__(self, img = "", strichlänge=30, wert=80, lückentoleranz = 2,resize=False):
+    def __init__(self, img = "", strichlänge=10, wert=85, lückentoleranz = 3,resize=False):
         self.imgpath = img
         self.wert = wert
         self.min_strichlänge = strichlänge
         self.lückentoleranz = lückentoleranz
         self.resize = resize
         self.doppungstoleranz = 0
+
+        self.zeit = 0 # vorraussichtliche Zeit, die für das Malen benötigt wird
     
     def konvertieren(self,info):
+        self.zeit = 0
         if self.erkennen()!=True:
             return False
+
+        self.zeit = 10 # 5s für Bewegen zur Startposition + 5s für Bewegen von Endposition
 
         if info:
             t=time()
             print(f"{len(self.strichliste)} Striche und {self.schritte_zählen()} Schritte erkannt")
 
         self.kurzeLinienEntfernen()
+        
+        self.anzahl_schritte_anfang = self.schritte_zählen()
+        
         if info:
             print(f"noch {len(self.strichliste)} Striche und {self.schritte_zählen()} Schritte nach dem entfenen kurzer Linien")
 
-        self.edgesanpassen()
+        #self.edgesanpassen()
 
-        self.geradeLinienZusammenfassen()
+        self.strichliste = self.geradeLinienZusammenfassen(deepcopy(self.strichliste))
         if info:
             print(f"noch {self.schritte_zählen()} Schritte nach dem geraden Zusammenfassen")
         
-        self.diagonaleLinienZusammenfasssen()
+        self.strichliste = self.diagonaleLinienZusammenfasssen(deepcopy(self.strichliste))
         if info:
             print(f"noch {self.schritte_zählen()} Schritte nach dem diagonalen Zusammenfassen")
             print(f"gesammte Rechendauer: {time()-t} Sekunden")
-        
-        #self.turtle()
-        
 
-        
+        self.zeit_berechnen()
         
         return True
 
-    def edgesanpassen(self):
-        self.edges = zeros([len(self.edges), len(self.edges[0])]) # Edges komplett entleeren
-        for strich in self.strichliste:
-            x=strich[0][0]
-            y=strich[0][1]
-            self.edges[y][x] = 255
-            for schritt in strich[1:]:
-                x+=schritt[0]
-                y+=schritt[1]
-                self.edges[y][x] = 255
+    def zeit_berechnen(self):
+        schritte = self.schritte_zählen()
+        zeit_echte_schritte = schritte * 0.18 #Zeit pro Schritt
+        self.zeit += zeit_echte_schritte
 
+        zeit_entfernte_schritte = self.anzahl_schritte_anfang * 0.001 #Zeit pro entfernten Schritt
+        self.zeit += zeit_entfernte_schritte
 
+        zeit_anzahl_striche = len(self.strichliste) * 2 #Zeit pro Strich
+        self.zeit += zeit_anzahl_striche
+    
+    def mache_qrcode__yey(self,link,imagesize,errorcor,codesize=None):
+        qrcode=RobotQR.erstelle_qr_code(imagesize,codesize,errorcor,link)
+        self.qr_array = qrcode
+        self.male_qr_code()
+        self.geradeLinienZusammenfassen(self.qr_array)
     
     def schritte_zählen(self):
         schritte=0
@@ -63,10 +74,9 @@ class EigenerAlgorithmus:
             schritte+=len(i)
         return schritte
     
-    def erkennen(self):
+    def canny_durchfuehren(self):
         self.img = cv2.imread(self.imgpath)
         if format(self.img) == "None":
-            #raise TypeError("Nicht lesbare Datei")
             return
         #faktor = 720 / self.img.shape[1]
         #if self.resize == True:
@@ -79,6 +89,15 @@ class EigenerAlgorithmus:
         self.edges = cv2.Canny(gray, self.wert, 200)
         #print(self.edges)
         #cv2.imshow("linesEdges", self.edges)
+        
+    def erkennen(self,bild = True):
+        if bild == True:
+            self.canny_durchfuehren()
+        if format(self.img) == "None":
+            return False
+#        else:
+#            self.edges = self.imgpath
+#            pass #Es wurde ein QRCode gegeben
         
         self.auflösung = (len(self.edges[0]), len(self.edges)) #(x,y)
         self.strichliste = []
@@ -192,14 +211,61 @@ class EigenerAlgorithmus:
                         pass
         # umliegende Pixel sind nicht weiß --> False zurückgeben
         return False
+    
+    def male_qr_code(self):
+        #self.qr_array = self.imgpath
+        self.strichliste=[]
+        yzähler = 0
+        for reihe_y in self.qr_array:
+            xzähler = 0
+            for zeichen_x in reihe_y:
+                if zeichen_x == 255:
+                    self.start_linie(xzähler,yzähler)
+                    #print(self.strichliste)
+                xzähler += 1
+            yzähler += 1
+        #self.geradeLinienZusammenfassen()
+        return self.strichliste
 
+
+    def start_linie(self,x,y):
+        self.strichliste.append([(x,y)]) #Startkoordinaten
+        self.qr_array[y][x] = 34
+        while True: #Reihe nach unten
+            while self.qr_array[y][x+1] == 255: #oberste Reihe
+                if x+1 <= len(self.qr_array[0])-1:
+                    self.strichliste[-1].append((1,0))
+                    self.qr_array[y][x+1] = 34
+                    x+=1
+                else:
+                    break
+            if self.qr_array[y+1][x] == 255:
+                self.strichliste[-1].append((0,1))
+                self.qr_array[y+1][x] = 34
+                y += 1
+            else:
+                break
+            while self.qr_array[y][x-1] == 255: #nächste Reihe (jetzt nach links)
+                if x-1 >= 0:
+                    self.strichliste[-1].append((-1,0))
+                    self.qr_array[y][x-1] = 34
+                    x -= 1
+                else:
+                    break
+            if self.qr_array[y+1][x] == 255:
+                self.strichliste[-1].append((0,1))
+                self.qr_array[y+1][x] = 34
+                y += 1
+            else:
+                break
+            
     def kurzeLinienEntfernen(self):
         for strichindex in range(len(self.strichliste)-1, -1, -1):
             if len(self.strichliste[strichindex]) <= self.min_strichlänge:
                 self.strichliste.pop(strichindex)
                 
-    def geradeLinienZusammenfassen(self):
-        for strich in self.strichliste:
+    def geradeLinienZusammenfassen(self, strichliste):
+        for strich in strichliste:
             neustrich=[strich[0]]
             letzte=(0,0)            #Letzter Schritt
             zähler=1                #Anzahl der bisherigen Wiederholungen
@@ -211,17 +277,18 @@ class EigenerAlgorithmus:
                     letzte=schritt
                     zähler=1
             neustrich.append((zähler*letzte[0],zähler*letzte[1]))
-            self.strichliste[self.strichliste.index(strich)]=neustrich
+            strichliste[strichliste.index(strich)]=neustrich
+        return strichliste
     
-    def diagonaleLinienZusammenfasssen(self):
-        for strichnr in range(len(self.strichliste)):
-            strich=self.strichliste[strichnr]
+    def diagonaleLinienZusammenfasssen(self, strichliste):
+        for strichnr in range(len(strichliste)):
+            strich=strichliste[strichnr]
             neustrich=[strich[0]]
             urschritt=(0,0)
             zähler=1
             jpunkt=[0,0]
             for schritt in strich[1:]:
-                if abs(int((jpunkt[0])+int(schritt[0]))-int(urschritt[0]*(zähler+1)))<=self.lückentoleranz and abs(int(jpunkt[1]+schritt[1])-int(urschritt[1]*(zähler+1)))<=self.lückentoleranz:
+                if abs(int((jpunkt[0])+int(schritt[0]))-int(urschritt[0]*(zähler+1)))<=(self.lückentoleranz*2) and abs(int(jpunkt[1]+schritt[1])-int(urschritt[1]*(zähler+1)))<=(self.lückentoleranz*2):
                     zähler+=1
                     jpunkt[0]+=schritt[0]
                     jpunkt[1]+=schritt[1]
@@ -231,7 +298,8 @@ class EigenerAlgorithmus:
                     zähler=1
                     jpunkt=list(urschritt)
             neustrich.append((jpunkt[0],jpunkt[1]))
-            self.strichliste[strichnr]=neustrich
+            strichliste[strichnr]=neustrich
+        return strichliste
 
 
 
@@ -239,10 +307,10 @@ class EigenerAlgorithmus:
         t = turtle.Pen()
         t.shape("turtle")
         t.color("black")
-        t.speed(0.1)
+        t.speed(4)
         versatz = 400
         t.pensize(3)
-        t._tracer(0)
+        #t._tracer(0)
         t.penup()
         for strich in self.strichliste:
             t.goto((strich[0][0])-versatz, (strich[0][1]*(-1))+versatz) # zur absoluten Startposition teleportieren#
@@ -255,17 +323,21 @@ class EigenerAlgorithmus:
         t.goto(1000, 1000)
         turtle.hideturtle()
 
-def testen(doc="Manhattan.jpeg"):
+def testen(doc=None,qrcode=None):
     print("moin")
-    E = EigenerAlgorithmus(doc,strichlänge=20,wert=80,lückentoleranz=2)
-
-    E.erkennen()
+    if doc != None:
+        E = EigenerAlgorithmus(doc,strichlänge=20,wert=80,lückentoleranz=2)
+        E.erkennen()
+    else:
+        print("Ja")
+        E = EigenerAlgorithmus(qrcode,strichlänge=20,wert=80,lückentoleranz=2)
+        E.male_qr_code()
 
     schritte=0
     for i in E.strichliste:
         schritte+=len(i)
 
-    cv2.imshow("linesEdges", E.edges)
+    cv2.imshow("linesEdges", E.qr_array)
 
     print(f"Aus {len(E.strichliste)} Strichen und {schritte} Schritten werden")
     
@@ -299,6 +371,5 @@ def testen(doc="Manhattan.jpeg"):
 
 #testen()
 
-
-#testen("Manhattan.jpeg")
+#testen(qrcode=RobotQR.erstelle_qr_code())
 #ab hier sinnlos weil turtel.done() ähnlich wie tk.mainloop()

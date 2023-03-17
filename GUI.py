@@ -1,24 +1,50 @@
-#Version 1.1
+#https://www.mypapertown.de
+#Version 1.2
+import json
 import numpy as np
 from tkinter import *
 from tkinter import filedialog as fd
 from PIL import Image as im
 from PIL import ImageTk
+from functools import partial
 import HEMalgorithmus as HEM
-import time
-import test as ROBO
+import Malprogramm as draw
+import QR_GUI_QR as qrgui
+
+try:
+    import roboter as ROBO
+except:
+    print("kein Roboter verfügbar")
 import turtle
 from turtle import TurtleScreen, ScrolledCanvas, RawTurtle
 
 class Benutzeroberfläche:
     def __init__(self,info=False):
+        self.farben = ("#000000","#CCCCCC","#232327","#232327", "#737377", "#232327", "#CCCCCC")
+        self.farben = ("#888888","black","#BBBBBB","#737377", "#434347", "#999999", "black")
+        # [0] = Background
+        # [1] = Text
+        # [2] = Canvas
+        # [3] = Tabbuttonfarbe
+        # [4] = aktuelle Tabfarbe
+        # [5] = Standard-ActiveBackground (nicht bei Klaibrieren, Zeichnen oder Toleranz anpassen, weil dort schon rot und grün zum Einsatz kommen)
+        # [6] = Standard-ActiveForeground (Textfarbe beim Drücken)
+        self.info=info
+        
         self.algorithmus = HEM.EigenerAlgorithmus()
-        self.roboter = ROBO.Roboter()
+        self.malfenster = draw.Malprogramm()
+        self.malfenster.lerne_GUI_kennen(self)
+        self.qrgui= qrgui.QRGUI()
+        self.qrgui.lerne_GUI_kennen(self)
+        try:
+            self.roboter = ROBO.Roboter()
+        except:
+            pass
         
         self.fenster=Tk()
         self.fenster.title("Netflix")
         #self.fenster.geometry("1440x900+2000+50")
-        self.info=info
+        
 
         fensterbreite = 1440
         fensterhöhe = 900
@@ -26,122 +52,206 @@ class Benutzeroberfläche:
         y = (self.fenster.winfo_screenheight() - fensterhöhe) // 2
         self.fenster.geometry(f"{fensterbreite}x{fensterhöhe}+{x}+{y}")
         
-        self.fensterfarbe="darkgrey"
-        self.fenster.configure(background=self.fensterfarbe)
+        self.fenster.configure(background=self.farben[0])
 
-        #Canvas
-        self.canvas = Canvas(self.fenster, width = 1280, height= 720, border=-2, bg = "#DDDDDD")
-        self.canvas.place(x = 115, y = 50)
+        #Tableiste
+        self.akt_Tab = 0
+        tabbuttoninhalt = ("Jetzt Zeichnen", "Bild öffnen", "JSON-Datei öffnen", "Bild malen", "QR-Code generieren")
+        self.tabbuttons = []
+        for i in range(len(tabbuttoninhalt)):
+            tabbutton = Button(self.fenster, text = tabbuttoninhalt[i], font=("TkDefaultFont", 12), relief=FLAT, activebackground=self.farben[5],activeforeground=self.farben[6], bg=self.farben[3], fg = self.farben[1], width=20, height=1, command=partial(self.tabwechseln, i))
+            tabbutton.place(x = i*190, y = 0)
+            self.tabbuttons.append(tabbutton)
 
-        #Buttons
-        self.webcam_BTN = Button(self.fenster, text = "Webcam nutzen", activebackground="#777777", bg=self.fensterfarbe, width=13, height=1, command=self.webcam)
-        self.webcam_BTN.place(x = 115, y = 15)
+        self.tabbuttons[self.akt_Tab].configure(bg=self.farben[4])
+
+        self.objektliste = [] # Alle TKinter-Objekte werden hierdrin gespeichert um sie schnell beim Tabwechsel löschen zu können
+
+        self.zeit_VAR = StringVar(self.fenster, "ca 0 min, 0 s")
         
-        self.bildÖffnen_BTN = Button(self.fenster, text = "Bild öffnen", activebackground="#777777", bg=self.fensterfarbe, width=10, height=1, command=self.bildÖffnen)
-        self.bildÖffnen_BTN.place(x = 230, y = 15)
+        self.imMainloop()
 
-        self.toleranzAnpassen_BTN = Button(self.fenster, text = "Toleranz anpassen", activebackground="#FF2223", bg=self.fensterfarbe, width=13, height=1, command=self.toleranzAnpassen)
-        self.toleranzAnpassen_BTN.place(x = 1300, y = 790)
+    def imMainloop(self):
 
-        self.kalibrierung_BTN = Button(self.fenster, text = "Kalibrieren", activebackground="#FF2223", bg=self.fensterfarbe, width=13, height=1, command=self.kalibrierungsfensterErstellen)
-        self.kalibrierung_BTN.place(x = 1300, y = 15)
+        if self.akt_Tab == 0:
+            self.jetztzeichnen()
 
-        self.MALEN_BTN = Button(self.fenster, text = "MALEN", activebackground="#55aa00", bg=self.fensterfarbe, width=13, height=1, command=self.malen)
-        self.MALEN_BTN.place(x = 1300, y = 840)
-
-        #Scales
-        self.größe_SCL = Scale(self.fenster, from_=100, to=0, orient=VERTICAL, bg=self.fensterfarbe, relief=FLAT, length=720, border = 0)
-        self.größe_SCL.place(x=40, y=48)
-        self.größe_SCL.set(100)
-
-        self.toleranz_LBL = Label(self.fenster,text="Kontrast-\ntoleranz:",bg=self.fensterfarbe,justify=LEFT)
-        self.toleranz_LBL.place(x=35,y=790)
-
-        self.toleranz_SCL = Scale(self.fenster, from_=0, to=255, orient=HORIZONTAL, bg=self.fensterfarbe, relief=FLAT, length=550, border = 0)
-        self.toleranz_SCL.place(x=115, y=790)
-        self.toleranz_SCL.set(80)
-
-        self.dotol_LBL = Label(self.fenster,text="Dopplungs-\ntoleranz:",bg=self.fensterfarbe,justify=LEFT) #dotol: Dopplungstoleranz
-        self.dotol_LBL.place(x=690,y=790)
-
-        self.dotol_SCL = Scale(self.fenster, from_=0, to=10, orient=HORIZONTAL, bg=self.fensterfarbe, relief=FLAT, length=500, border = 0)
-        self.dotol_SCL.place(x=765, y=790)
-        self.dotol_SCL.set(0)
-
-        self.minstrl_LBL = Label(self.fenster,text="minimale\nStrichlänge:",bg=self.fensterfarbe,justify=LEFT) #minstrl: minimale Strichlänge
-        self.minstrl_LBL.place(x=35,y=840)
-
-        self.minstrl_SCL = Scale(self.fenster, from_=0, to=50, orient=HORIZONTAL, bg=self.fensterfarbe, relief=FLAT, length=550, border = 0)
-        self.minstrl_SCL.place(x=115, y=840)
-        self.minstrl_SCL.set(20)
-
-        self.luetol_LBL = Label(self.fenster,text="Lücken-\ntoleranz:",bg=self.fensterfarbe,justify=LEFT) #luetol: Lückentoleranz
-        self.luetol_LBL.place(x=690,y=840)
-
-        self.luetol_SCL = Scale(self.fenster, from_=0, to=10, orient=HORIZONTAL, bg=self.fensterfarbe, relief=FLAT, length=500, border = 0)
-        self.luetol_SCL.place(x=765, y=840)
-        self.luetol_SCL.set(5)
-
-        
+        if self.akt_Tab == 3:
+            self.malfenster.oberfläche()
+        if self.akt_Tab == 4:
+            self.qrgui.oberfläche()
 
         self.fenster.mainloop()
 
-    def malen(self):
+    def tabwechseln(self, tab):
+        if tab == self.akt_Tab:
+            return #nur bei Tabwechsel wird was gemacht
+        else:
+            self.akt_Tab = tab
+            if tab == 1:
+                self.bildÖffnen(True)
+                #zu "Jetzt Zeichnen" wechseln
+                self.tabwechseln(0)
+
+            elif tab == 2:
+                self.malfenster.jsonÖffnen()
+                #zum "Malprogramm" wechseln
+                self.tabwechseln(3)
+                
+            else:
+                #alte Objekte löschen
+                for i in self.objektliste:
+                    i.destroy()
+
+                # Tabbuttonfarbe aktualisieren
+                for i in self.tabbuttons:
+                    i.configure(bg=self.farben[3])
+                self.tabbuttons[self.akt_Tab].configure(bg=self.farben[4])
+
+                #neue Objekte setzen
+                self.imMainloop()
+
+    def jetztzeichnen(self):
+        #Canvas
+        self.canvas = Canvas(self.fenster, width = 1280, height= 720, border=-2, bg = self.farben[2])
+        self.canvas.place(x = 115, y = 50)
+        self.objektliste.append(self.canvas)
+
+        #Buttons
+        self.toleranzAnpassen_BTN = Button(self.fenster, text = "Toleranz anpassen", activebackground="#FF2223", bg=self.farben[0],fg = self.farben[1], width=13, height=1, command=self.toleranzAnpassen)
+        self.toleranzAnpassen_BTN.place(x = 1300, y = 790)
+        self.objektliste.append(self.toleranzAnpassen_BTN)
+
+        self.kalibrierung_BTN = Button(self.fenster, text = "Kalibrieren", activebackground="#FF2223", bg=self.farben[0],fg = self.farben[1], width=13, height=1, command=self.kalibrierungsfensterErstellen)
+        self.kalibrierung_BTN.place(x = 1300, y = 15)
+        self.objektliste.append(self.kalibrierung_BTN)
+
+        self.MALEN_BTN = Button(self.fenster, text = "MALEN", activebackground="#55aa00", bg=self.farben[0],fg = self.farben[1], width=13, height=1, command=self.malen)
+        self.MALEN_BTN.place(x = 1300, y = 850)
+        self.objektliste.append(self.MALEN_BTN)
+
+        #Scales
+        self.größe_SCL = Scale(self.fenster, from_=100, to=0, orient=VERTICAL, bg=self.farben[0],fg = self.farben[1], relief=FLAT, length=720, activebackground = self.farben[5],highlightbackground=self.farben[2],troughcolor=self.farben[2], border = 0)
+        self.größe_SCL.place(x=40, y=48)
+        self.größe_SCL.set(100)
+        self.objektliste.append(self.größe_SCL)
+
+        labelinhalt = (("Kontrast-\ntoleranz:", "Dopplungs-\ntoleranz:"),("minimale\nStrichlänge:", "Lücken-\ntoleranz:"))
+        scale_to = ((255,10),(50,10))
+        setwerte = ((170,0),(10,3))
+
+        self.labelliste=[]
+        self.scaleliste=[] # [Kontrast, Dopplung, minStrich, Lücken]
+        
+        for i in range(0,2):
+            for j in range(0,2):
+                label = Label(self.fenster,text=labelinhalt[i][j],bg=self.farben[0],fg = self.farben[1],activebackground = self.farben[5],justify=LEFT)
+                label.place(x = ((j*650)+115)-80, y = ((i*50)+790))
+
+                scale = Scale(self.fenster, from_=0, to=scale_to[i][j], orient=HORIZONTAL, bg=self.farben[0],fg = self.farben[1], relief=FLAT, length=550-(j*50),activebackground = self.farben[5],highlightbackground=self.farben[2],troughcolor=self.farben[2], border = 0)
+                scale.place(x = ((j*650)+115), y= ((i*50)+790))
+                scale.set(setwerte[i][j])
+
+                self.labelliste.append(label)
+                self.scaleliste.append(scale)
+
+        self.objektliste+=self.labelliste
+        self.objektliste+=self.scaleliste
+
+        #Checkbutton
+        self.instantZeichnen_VAR = BooleanVar(self.fenster,False)
+        
+        self.instantZeichnen_CHB = Checkbutton(self.fenster, text = "sofort Zeichnen", bg = self.farben[0], activebackground = self.farben[0],activeforeground=self.farben[6],fg = self.farben[1],variable = self.instantZeichnen_VAR)
+        self.instantZeichnen_CHB.place(x = 1300, y = 815)
+        self.instantZeichnen_CHB.select()
+        self.objektliste.append(self.instantZeichnen_CHB)
+
+        #HIER BEEEEEEEEEEEEN DAS IST DAZUGEKOMMEN
+        
+        self.zeit_LBL = Label(self.fenster,textvariable = self.zeit_VAR ,bg=self.farben[0],fg = self.farben[1],activebackground = self.farben[5],justify=LEFT)
+        self.zeit_LBL.place(x = 1300, y = 877)
+        self.objektliste.append(self.zeit_LBL)
+        
+        if self.algorithmus.zeit != 0: # Bild exisitiert
+            self.turtle()
+            self.fenster.update()
+
+
+    
+
+    def malen(self, liste = None):
+        self.roboter.reset(True)
         try:
-            strichliste = self.algorithmus.strichliste
+            if liste == None:
+                strichliste = self.algorithmus.strichliste
+                bildbreite = len(self.algorithmus.edges[0])
+                bildhöhe = len(self.algorithmus.edges)
+            else:
+                strichliste = liste
+                bildbreite = self.malfenster.canvasbreite
+                bildhöhe = self.malfenster.canvashöhe
         except NameError:
             print("abbruch")
             return
-        bildbreite = len(self.algorithmus.edges[0])
-        bildhöhe = len(self.algorithmus.edges)
+        
         
         self.roboter.bildZeichnen(strichliste, (bildbreite, bildhöhe))
-        #self.fenster.wait_variable(self.roboter.weiter)
 
     def kalibrierungsfensterErstellen(self):
         # kafe = Kaliebrierungs-Fenster
         self.roboter.reset(True)
         self.kafe = Toplevel()
         self.kafe.geometry("300x170")
-        self.kafe.configure(background=self.fensterfarbe)
-        self.eckliste = ["OL", "OR", "UR", "UL"]
+        self.kafe.configure(background=self.farben[0])
+        self.eckliste = ["untererBildrand", "OL", "OR", "UR", "UL"]
         self.akt_ecklisten_index = 0
 
         self.roboter.gehezuEcke(self.eckliste[self.akt_ecklisten_index]) # zur ersten Ecke gehen
 
         #Label
-        self.anzeige_LBL = Label(self.kafe, text = "aktuelle Ecke: "+self.eckliste[0], bg=self.fensterfarbe)
+        self.anzeige_LBL = Label(self.kafe, text = "aktueller Schritt: "+self.eckliste[0], bg=self.farben[0])
         self.anzeige_LBL.place(x = 15, y = 10)
         
-        self.kafevelo_LBL = Label(self.kafe, text = "Geschwindigkeit der Kalibrierung", bg=self.fensterfarbe)
+        self.kafevelo_LBL = Label(self.kafe, text = "Geschwindigkeit der Kalibrierung", bg=self.farben[0])
         self.kafevelo_LBL.place(x = 15, y = 60)
 
         #Buttons
-        self.näher_BTN = Button(self.kafe, text = "näher", activebackground="#777777", bg=self.fensterfarbe, width=13, height=1, command=self.kalibrierungs_NÄHER)
+        self.näher_BTN = Button(self.kafe, text = "höher", activebackground="#777777", bg=self.farben[0], width=13, height=1, command=self.kalibrierungs_NÄHER)
         self.näher_BTN.place(x = 15, y = 30)
 
-        self.ferner_BTN = Button(self.kafe, text = "ferner", activebackground="#777777", bg=self.fensterfarbe, width=13, height=1, command=self.kalibrierungs_FERNER)
+        self.ferner_BTN = Button(self.kafe, text = "tiefer", activebackground="#777777", bg=self.farben[0], width=13, height=1, command=self.kalibrierungs_FERNER)
         self.ferner_BTN.place(x = 150, y = 30)
 
-        self.nächster_BTN = Button(self.kafe, text = "nächster Kalibrierungsschritt", activebackground="#777777", bg=self.fensterfarbe, width=32, height=1, command=self.kalibrierung_NÄCHSTE)
+        self.nächster_BTN = Button(self.kafe, text = "nächster Kalibrierungsschritt", activebackground="#777777", bg=self.farben[0], width=32, height=1, command=self.kalibrierung_NÄCHSTE)
         self.nächster_BTN.place(x = 15, y = 130)
 
         #Scales
-        self.kalibrierungsgeschwindigkeit_SCL = Scale(self.kafe, from_=1, to=20, orient=HORIZONTAL, bg=self.fensterfarbe, relief=FLAT, length=250, border = 0)
+        self.kalibrierungsgeschwindigkeit_SCL = Scale(self.kafe, from_=1, to=20, orient=HORIZONTAL, bg=self.farben[0], relief=FLAT, length=250, border = 0)
         self.kalibrierungsgeschwindigkeit_SCL.place(x=15, y=80)
         self.kalibrierungsgeschwindigkeit_SCL.set(10)
 
 
     def kalibrierungs_NÄHER(self):
-        self.roboter.kalibrierung(self.kalibrierungsgeschwindigkeit_SCL.get())
+        if self.akt_ecklisten_index == 0:
+            z = True
+        else:
+            z = False
+        self.roboter.kalibrierung(self.kalibrierungsgeschwindigkeit_SCL.get(), z)
 
     def kalibrierungs_FERNER(self):
-        self.roboter.kalibrierung(-1 * self.kalibrierungsgeschwindigkeit_SCL.get())
+        if self.akt_ecklisten_index == 0:
+            z = True
+        else:
+            z = False
+        self.roboter.kalibrierung(-1 * self.kalibrierungsgeschwindigkeit_SCL.get(), z)
 
     def kalibrierung_NÄCHSTE(self):
         self.roboter.vierPunkteKalibrierung(self.eckliste[self.akt_ecklisten_index]) # aktuelle Position eintragen
+
+        self.näher_BTN.config(text="näher")
+        self.ferner_BTN.config(text="ferner")
         
-        if self.akt_ecklisten_index == 3: # Nach allen 4 Ecken kafe schließen
+        if self.akt_ecklisten_index == 4: # Nach allen 4 Ecken kafe schließen
             self.roboter.saveKalibrierungspunkte()
             self.roboter.stift_absetzen()
             self.kafe.destroy()
@@ -153,40 +263,35 @@ class Benutzeroberfläche:
         self.anzeige_LBL.configure(text = "aktuelle Ecke: "+self.eckliste[self.akt_ecklisten_index])
         self.roboter.gehezuEcke(self.eckliste[self.akt_ecklisten_index]) # zur nächsten Ecke gehen
 
-    def webcam(self):
-        pass
-
-    def bildÖffnen(self):
-        filepath = fd.askopenfilename()
+    def bildÖffnen(self, tabwechsel = False): #bei Tabwechsel = True --> kein Turtle malen
+        filepath = fd.askopenfilename(filetypes = [("Bild", "*.jpg;*.jpeg;*.png")])
         self.algorithmus.imgpath = filepath
         if self.algorithmus.konvertieren(self.info) == True:
-            #self.bildPlazieren()
-            self.turtle()
+
+            self.update_Zeit()
+            if tabwechsel == False:
+                self.turtle()
         else:
             print("Error beim Erkennen des Bildes")
 
-    def toleranzAnpassen(self):
-        self.algorithmus.wert = 255-self.toleranz_SCL.get()
-        self.algorithmus.min_strichlänge = self.minstrl_SCL.get()
-        self.algorithmus.lückentoleranz = self.luetol_SCL.get()
-        self.algorithmus.doppungstoleranz = self.dotol_SCL.get()
-        if self.algorithmus.konvertieren(self.info) == True:
-            #self.bildPlazieren()
-            self.turtle()
+    def update_Zeit(self):
+        minuten = int(self.algorithmus.zeit // 60)
+        sekunden = int(round(self.algorithmus.zeit % 60, -1))
+        zeit = f"ca. {minuten} min, {sekunden} s"
+        print(zeit)
+        self.zeit_VAR.set(zeit)
+        self.fenster.update()
 
-    def bildPlazieren(self):
-        for i in self.canvas.find_withtag("BILD"):
-            self.canvas.delete(i)
-        self.loades_edges = self.algorithmus.edges
-        verhältnis = self.getVerhältnis(self.loades_edges)
-        self.resized_edges = self.resizeEdges(self.loades_edges, verhältnis[0], verhältnis[1])
-        data = im.fromarray(self.resized_edges)
-        self.img = ImageTk.PhotoImage(data)
-        
-        place_x = ((1280-verhältnis[0])/2)
-        place_y = ((720-verhältnis[1])/2)
-        
-        self.canvas.create_image(place_x, place_y, anchor = NW, image = self.img, tag = "BILD")
+
+    def toleranzAnpassen(self): #self.scaleliste = [Kontrast, Dopplung, minStrich, Lücken]
+        self.algorithmus.wert = 255-self.scaleliste[0].get()
+        self.algorithmus.min_strichlänge = self.scaleliste[2].get()
+        self.algorithmus.doppungstoleranz = self.scaleliste[1].get()
+        self.algorithmus.lückentoleranz = self.scaleliste[3].get()+1
+
+        if self.algorithmus.konvertieren(self.info) == True:
+            self.update_Zeit()
+            self.turtle()
 
     def getVerhältnis(self, edges):
         bildbreite = len(edges[0])
@@ -210,46 +315,20 @@ class Benutzeroberfläche:
         tupel2 = (x,y)
 
         if (tupel1[0] * tupel1[1]) > (tupel2[0] * tupel2[1]): # besseres Format mithilfe vom Flächeninhalt herausfinden
-            print(canvasbreite/bildbreite)
-            print(canvashöhe/bildhöhe)
+            #print(canvasbreite/bildbreite)
+            #print(canvashöhe/bildhöhe)
             self.verhältnis = canvasbreite/bildbreite
             return tupel1
         else:
-            print(canvasbreite/bildbreite)
-            print(canvashöhe/bildhöhe)
+            #print(canvasbreite/bildbreite)
+            #print(canvashöhe/bildhöhe)
             self.verhältnis = canvashöhe/bildhöhe
             return tupel2
 
-    def resizeEdges(self, edges, newWidth, newHeight):
-        oldWidth = len(edges[0])
-        oldHeight = len(edges)
-        newEdges = np.zeros([newHeight, newWidth]) # neues Array nur mit 0-en in der richtigen Größe erstellt
-
-        # Hier wird entschieden wie verfahren wird. Bei herunterskalieren (also viele werden zu wenigen Pixeln) wird das alte Bild mit den vielen Pixeln durchgegangen.
-        # Bei Hochskalierung wird das neue Bild durchgegangen und da wird an den Koordinaten des alten Bilds überprüft, welcher Wert da steht.
-        if newWidth < oldWidth:
-            for x in range(oldWidth):
-                for y in range(oldHeight): #geht jeden Pixel durch
-                    xNew = int(x*(newWidth/oldWidth))
-                    yNew = int(y*(newHeight/oldHeight)) # bildet Verhältnis zwischen alter und neuer Pixelposition
-                    wert = edges[y][x]
-                    if wert == 40:
-                        wert = 255
-                    newEdges[yNew][xNew] = abs(wert-255) # Pixel invertieren
-        else:
-            for x in range(newWidth):
-                for y in range(newHeight): #geht jeden Pixel durch
-                    xOld = int(x*(oldWidth/newWidth))
-                    yOld = int(y*(oldHeight/newHeight)) # bildet Verhältnis zwischen alter und neuer Pixelposition
-                    wert = edges[yOld][xOld]
-                    if wert == 40:
-                        wert = 255
-                    newEdges[y][x] = abs(wert-255) # Pixel invertieren
-        return newEdges
 
     def turtle(self):
         verhältnis = self.getVerhältnis(self.algorithmus.edges)
-        print(verhältnis)
+        #print(verhältnis)
         self.canvas.delete("all")
         screen = TurtleScreen(self.canvas)
         t = turtle.RawTurtle(screen)
@@ -259,7 +338,8 @@ class Benutzeroberfläche:
         versatz_x = (len(self.algorithmus.edges[0]))/2
         versatz_y = (len(self.algorithmus.edges))/2
         t.pensize(3)
-        t._tracer(0)
+        if self.instantZeichnen_VAR.get():
+            t._tracer(0)
         t.penup()
         for strich in self.algorithmus.strichliste:
             t.goto(round((strich[0][0]-versatz_x)*self.verhältnis), round((strich[0][1]*(-1)+versatz_y)*self.verhältnis))
@@ -271,8 +351,7 @@ class Benutzeroberfläche:
                     #t.goto(turtx+(relcord[0]),turty+(relcord[1]*(-1)))
             t.penup()
             t.color("black")
-        t.hideturtle()
-        t.goto(len(self.algorithmus.edges[0])*2,len(self.algorithmus.edges)*2)
+        t.goto(100*len(self.algorithmus.edges[0])*2,100*len(self.algorithmus.edges)*2)
 
 
 B = Benutzeroberfläche(True)
