@@ -3,7 +3,6 @@ import turtle
 import cv2
 from time import time
 from numpy import zeros
-import RobotQR
 from copy import deepcopy
 
 

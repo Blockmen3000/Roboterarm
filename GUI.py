@@ -1,5 +1,5 @@
 #https://www.mypapertown.de
-#Version 1.2
+#Version 1.3
 import json
 import numpy as np
 from tkinter import *
@@ -9,7 +9,6 @@ from PIL import ImageTk
 from functools import partial
 import HEMalgorithmus as HEM
 import Malprogramm as draw
-import QR_GUI_QR as qrgui
 
 try:
     import roboter as ROBO
@@ -34,8 +33,6 @@ class Benutzeroberfläche:
         self.algorithmus = HEM.EigenerAlgorithmus()
         self.malfenster = draw.Malprogramm()
         self.malfenster.lerne_GUI_kennen(self)
-        self.qrgui= qrgui.QRGUI()
-        self.qrgui.lerne_GUI_kennen(self)
         try:
             self.roboter = ROBO.Roboter()
         except:
@@ -56,7 +53,7 @@ class Benutzeroberfläche:
 
         #Tableiste
         self.akt_Tab = 0
-        tabbuttoninhalt = ("Jetzt Zeichnen", "Bild öffnen", "JSON-Datei öffnen", "Bild malen", "QR-Code generieren")
+        tabbuttoninhalt = ("Jetzt Zeichnen", "Bild öffnen", "JSON-Datei öffnen", "Bild malen")
         self.tabbuttons = []
         for i in range(len(tabbuttoninhalt)):
             tabbutton = Button(self.fenster, text = tabbuttoninhalt[i], font=("TkDefaultFont", 12), relief=FLAT, activebackground=self.farben[5],activeforeground=self.farben[6], bg=self.farben[3], fg = self.farben[1], width=20, height=1, command=partial(self.tabwechseln, i))
@@ -130,11 +127,6 @@ class Benutzeroberfläche:
         self.MALEN_BTN.place(x = 1300, y = 850)
         self.objektliste.append(self.MALEN_BTN)
 
-        #Scales
-        self.größe_SCL = Scale(self.fenster, from_=100, to=0, orient=VERTICAL, bg=self.farben[0],fg = self.farben[1], relief=FLAT, length=720, activebackground = self.farben[5],highlightbackground=self.farben[2],troughcolor=self.farben[2], border = 0)
-        self.größe_SCL.place(x=40, y=48)
-        self.größe_SCL.set(100)
-        self.objektliste.append(self.größe_SCL)
 
         labelinhalt = (("Kontrast-\ntoleranz:", "Dopplungs-\ntoleranz:"),("minimale\nStrichlänge:", "Lücken-\ntoleranz:"))
         scale_to = ((255,10),(50,10))
@@ -338,6 +330,7 @@ class Benutzeroberfläche:
         versatz_x = (len(self.algorithmus.edges[0]))/2
         versatz_y = (len(self.algorithmus.edges))/2
         t.pensize(3)
+        t.hideturtle()
         if self.instantZeichnen_VAR.get():
             t._tracer(0)
         t.penup()
