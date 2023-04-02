@@ -266,38 +266,44 @@ class EigenerAlgorithmus:
     def geradeLinienZusammenfassen(self, strichliste):
         for strich in strichliste:
             neustrich=[strich[0]]
-            letzte=(0,0)            #Letzter Schritt
-            zähler=1                #Anzahl der bisherigen Wiederholungen
+            urschritt = (0,0)
+            letzte = (0,0)            #Letzter Schritt
+            zähler = 1                #Anzahl der bisherigen Wiederholungen
+            jpunkt = [0,0]
             for schritt in strich[1:]:
-                if letzte == schritt:
+                if letzte == schritt or ((abs(jpunkt[0] + schritt[0] - abs(urschritt[0] * (zähler + 1))) < self.lückentoleranz) and (abs(jpunkt[1] + schritt[1] - abs(urschritt[1] * (zähler + 1))) < self.lückentoleranz)):
                     zähler+=1
+                    jpunkt[0] += schritt[0]
+                    jpunkt[1] += schritt[1]
                 else:
-                    neustrich.append((zähler*letzte[0],zähler*letzte[1]))
-                    letzte=schritt
-                    zähler=1
+                    neustrich.append((jpunkt[0],jpunkt[1]))
+                    letzte = schritt
+                    zähler = 1
+                    urschritt = schritt
+                    jpunkt = list(urschritt)
             neustrich.append((zähler*letzte[0],zähler*letzte[1]))
             strichliste[strichliste.index(strich)]=neustrich
         return strichliste
     
     def diagonaleLinienZusammenfasssen(self, strichliste):
         for strichnr in range(len(strichliste)):
-            strich=strichliste[strichnr]
-            neustrich=[strich[0]]
-            urschritt=(0,0)
-            zähler=1
-            jpunkt=[0,0]
+            strich = strichliste[strichnr]
+            neustrich = [strich[0]]
+            urschritt = (0,0)
+            zähler = 1
+            jpunkt = [0,0]
             for schritt in strich[1:]:
                 if abs(int((jpunkt[0])+int(schritt[0]))-int(urschritt[0]*(zähler+1)))<=(self.lückentoleranz*2) and abs(int(jpunkt[1]+schritt[1])-int(urschritt[1]*(zähler+1)))<=(self.lückentoleranz*2):
                     zähler+=1
-                    jpunkt[0]+=schritt[0]
-                    jpunkt[1]+=schritt[1]
+                    jpunkt[0] += schritt[0]
+                    jpunkt[1] += schritt[1]
                 else:
                     neustrich.append((jpunkt[0],jpunkt[1]))
-                    urschritt=schritt
-                    zähler=1
-                    jpunkt=list(urschritt)
+                    urschritt = schritt
+                    zähler = 1
+                    jpunkt = list(urschritt)
             neustrich.append((jpunkt[0],jpunkt[1]))
-            strichliste[strichnr]=neustrich
+            strichliste[strichnr] = neustrich
         return strichliste
 
 
